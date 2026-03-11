@@ -9,7 +9,10 @@ import { AuthContext } from '../context/AuthContext';
 
 const Reports = () => {
   const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+
 
   const currentYear = new Date().getFullYear();
   const [filterYear, setFilterYear] = useState(currentYear.toString());
@@ -19,7 +22,7 @@ const Reports = () => {
   const years = ["2020", "2021", "2022", "2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030"];
 
   useEffect(() => {
-    fetchData();
+    // No auto-fetch on mount
   }, []);
   const fetchData = async () => {
     if (!filterMonth) {
@@ -33,6 +36,8 @@ const Reports = () => {
       const res = await axios.get(url);
       if (res.data.success) {
         setData(res.data.data);
+        setHasSearched(true);
+        setSelectedIds([]); // Reset selection on new fetch
       }
     } catch (err) {
       console.error(err);
@@ -57,12 +62,46 @@ const Reports = () => {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} selected records?`)) {
+      try {
+        const res = await axios.post('http://localhost:5000/api/donations/bulk-delete', { ids: selectedIds });
+        if (res.data.success) {
+          fetchData();
+          setSelectedIds([]);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Failed to delete selected records');
+      }
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === data.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(data.map(item => item.id));
+    }
+  };
+
+  const toggleSelect = (id) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter(sid => sid !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+
   const exportExcel = () => {
     const ws = XLSX.utils.json_to_sheet(data.map((item, index) => ({
       "S.No": index + 1,
       ID: item.id,
-      "Member Name": item.name,
-      Amount: item.amount,
+      "Member Name (Nepali)": item.name,
+      "Member Name (English)": item.name_en || '',
+      Amount: Math.floor(Number(item.amount)),
       Year: item.year,
       Month: item.month,
       Date: new Date(item.created_at).toLocaleDateString()
@@ -89,16 +128,17 @@ const Reports = () => {
 
     autoTable(doc, {
       startY: 36,
-      head: [['S.No', 'Member Name', 'Amount (Rs)', 'Year', 'Month', 'Date Logged']],
+      head: [['S.No', 'Nepali Name', 'English Name', 'Amount (Rs)', 'Year', 'Month', 'Date Logged']],
       body: data.map((item, idx) => [
         idx + 1,
         item.name,
-        Number(item.amount).toLocaleString(),
+        item.name_en || '',
+        Math.floor(Number(item.amount)).toLocaleString(),
         item.year,
         item.month,
         new Date(item.created_at).toLocaleDateString()
       ]),
-      foot: [['', 'TOTAL', total.toLocaleString(), '', '', '']],
+      foot: [['', 'TOTAL', '', Math.floor(total).toLocaleString(), '', '', '']],
       headStyles: { fillColor: [13, 59, 52], textColor: 255, fontStyle: 'bold' },
       footStyles: { fillColor: [240, 240, 240], textColor: 50, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [248, 250, 251] },
@@ -106,7 +146,9 @@ const Reports = () => {
       columnStyles: { 0: { halign: 'center', cellWidth: 12 }, 2: { halign: 'right' } }
     });
 
-    doc.save(`FGT_Tithes_${filterYear}_${filterMonth}.pdf`);
+    const pdfBlob = doc.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    window.open(pdfUrl, '_blank');
   };
 
   // PDF — All months of selected year, grouped by month
@@ -120,10 +162,10 @@ const Reports = () => {
       const doc = new jsPDF();
       doc.setFontSize(15);
       doc.setFont('helvetica', 'bold');
-      doc.text('FGT Church', 14, 15);
+      doc.text('Nepalgunj FGT Church - Monthly Tithe Report', 14, 15);
       doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Complete Tithe Report — Year ${filterYear}`, 14, 23);
+        doc.text(`Nepalgunj FGT Church - Annual Tithe Statement (${filterYear})`, 14, 15);
       doc.setFontSize(9);
       doc.text(`Generated: ${new Date().toLocaleDateString()}  |  Total Records: ${allData.length}`, 14, 30);
 
@@ -157,14 +199,15 @@ const Reports = () => {
 
         autoTable(doc, {
           startY: startY + 4,
-          head: [['S.No', 'Member Name', 'Amount (Rs)', 'Date']],
+          head: [['S.No', 'Nepali Name', 'English Name', 'Amount (Rs)', 'Date']],
           body: monthData.map((item, idx) => [
             idx + 1,
             item.name,
-            Number(item.amount).toLocaleString(),
+            item.name_en || '',
+            Math.floor(Number(item.amount)).toLocaleString(),
             new Date(item.created_at).toLocaleDateString()
           ]),
-          foot: [['', `${month} Total`, monthTotal.toLocaleString(), '']],
+          foot: [['', '', `${month} Total`, Math.floor(monthTotal).toLocaleString(), '']],
           headStyles: { fillColor: [13, 59, 52], textColor: 255, fontStyle: 'bold', fontSize: 8 },
           footStyles: { fillColor: [240, 240, 240], fontStyle: 'bold', fontSize: 8 },
           alternateRowStyles: { fillColor: [248, 250, 251] },
@@ -181,9 +224,11 @@ const Reports = () => {
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(13, 59, 52);
-      doc.text(`Grand Total (${filterYear}): Rs. ${grandTotal.toLocaleString()}`, 14, startY + 5);
+      doc.text(`Grand Total (${filterYear}): Rs. ${Math.floor(grandTotal).toLocaleString()}`, 14, startY + 5);
 
-      doc.save(`FGT_Tithes_AllMonths_${filterYear}.pdf`);
+      const pdfBlob = doc.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, '_blank');
     } catch (err) {
       console.error(err);
       alert('Failed to generate PDF');
@@ -212,27 +257,33 @@ const Reports = () => {
           </select>
         </div>
 
-        <button className="btn" onClick={fetchData}>
-          <Search size={18} /> Filter
+        <button className="btn btn-sm" onClick={fetchData}>
+          <Search size={16} /> Filter
         </button>
 
-        {/* Export Buttons */}
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <button className="btn" style={{ backgroundColor: 'var(--success-color)' }} onClick={exportExcel} disabled={data.length === 0}>
-            <Download size={18} /> Excel
+        {/* Export and Bulk Delete Buttons */}
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button className="btn btn-sm" style={{ backgroundColor: 'var(--success-color)' }} onClick={exportExcel} disabled={data.length === 0}>
+            <Download size={14} /> Excel
           </button>
-          <button className="btn" style={{ backgroundColor: '#e53e3e' }} onClick={exportPDFCurrent} disabled={data.length === 0}>
-            <FileText size={18} /> PDF (Current View)
+          <button className="btn btn-sm" style={{ backgroundColor: '#e53e3e' }} onClick={exportPDFCurrent} disabled={data.length === 0}>
+            <FileText size={14} /> PDF Preview
           </button>
-          <button className="btn" style={{ backgroundColor: '#744210' }} onClick={exportPDFAllMonths}>
-            <FileText size={18} /> PDF (All Months)
+          <button className="btn btn-sm" style={{ backgroundColor: '#744210' }} onClick={exportPDFAllMonths}>
+            <FileText size={14} /> Year Report
           </button>
         </div>
       </div>
 
+
       <div className="glass-panel table-container">
         {loading ? (
           <p>Loading records...</p>
+        ) : !hasSearched ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+            <Search size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
+            <p>Please select filters and click <strong>Filter</strong> to view records.</p>
+          </div>
         ) : data.length === 0 ? (
           <p style={{ color: 'var(--text-secondary)' }}>No tithes found for the selected period.</p>
         ) : (
@@ -240,25 +291,57 @@ const Reports = () => {
             <table>
               <thead>
                 <tr>
-                  <th>S.No</th>
-                  <th>ID</th>
-                  <th>Member Name</th>
+                  <th style={{ width: '40px', textAlign: 'center' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={data.length > 0 && selectedIds.length === data.length} 
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
+                  <th style={{ width: '60px' }}>S.No</th>
+                  <th>Member Name (Nepali / English)</th>
                   <th>Amount (Rs)</th>
-                  <th>Year</th>
-                  <th>Month</th>
+                  <th style={{ textAlign: 'center' }}>Year</th>
+                  <th style={{ textAlign: 'center' }}>Month</th>
                   <th>Date Logged</th>
-                  <th style={{ textAlign: 'center' }}>Action</th>
+                  <th style={{ textAlign: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                      {selectedIds.length > 0 && (
+                        <button 
+                          className="btn btn-danger btn-sm" 
+                          style={{ padding: '2px 4px', width: '100%', marginBottom: '4px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }} 
+                          onClick={handleBulkDelete}
+                          title="Delete Items"
+                        >
+                          <Trash2 size={10} /> Delete Item
+                        </button>
+                      )}
+                      <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Action</span>
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {data.map((item, index) => (
-                  <tr key={item.id}>
+                  <tr key={item.id} style={{ backgroundColor: selectedIds.includes(item.id) ? 'rgba(var(--accent-rgb), 0.05)' : 'transparent' }}>
+                    <td style={{ textAlign: 'center' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedIds.includes(item.id)} 
+                        onChange={() => toggleSelect(item.id)}
+                      />
+                    </td>
                     <td>{index + 1}</td>
-                    <td>{item.id}</td>
-                    <td style={{ fontWeight: 500 }}>{item.name}</td>
-                    <td style={{ color: 'var(--success-color)' }}>{nepalify.format(item.amount.toString())}</td>
-                    <td>{nepalify.format(item.year.toString())}</td>
-                    <td>{item.month}</td>
+
+                    <td style={{ fontWeight: 500 }}>
+                      <div>{item.name}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        {item.name_en || ''}
+                      </div>
+                    </td>
+                    <td style={{ color: 'var(--success-color)' }}>{nepalify.format(Math.floor(Number(item.amount)).toLocaleString())}</td>
+                    <td style={{ textAlign: 'center' }}>{nepalify.format(item.year.toString())}</td>
+                    <td style={{ textAlign: 'center' }}>{item.month}</td>
                     <td>{new Date(item.created_at).toLocaleDateString()}</td>
                     <td style={{ textAlign: 'center' }}>
                       <button
@@ -275,11 +358,11 @@ const Reports = () => {
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={3} style={{ fontWeight: 700, textAlign: 'right', paddingRight: '1rem' }}>Total:</td>
+                  <td colSpan={5} style={{ fontWeight: 700, textAlign: 'right', paddingRight: '1rem' }}>Total:</td>
                   <td style={{ fontWeight: 700, color: 'var(--success-color)' }}>
-                    {nepalify.format(data.reduce((s, i) => s + Number(i.amount), 0).toLocaleString())}
+                    {nepalify.format(Math.floor(data.reduce((s, i) => s + Number(i.amount), 0)).toLocaleString())}
                   </td>
-                  <td colSpan={4} />
+                  <td colSpan={3} />
                 </tr>
               </tfoot>
             </table>

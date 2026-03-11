@@ -56,9 +56,9 @@ const Dashboard = () => {
   }, [currentYear]);
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <div className="page-header" style={{ justifyContent: 'center', textAlign: 'center' }}>
-        <h2 style={{ textAlign: 'center', width: '100%' }}>Dashboard Overview</h2>
+    <div style={{ width: '100%', margin: '0' }}>
+      <div className="page-header" style={{ justifyContent: 'center', textAlign: 'center', marginBottom: '2rem' }}>
+        <h2 style={{ textAlign: 'center', width: '100%', fontSize: '1.5rem' }}>Dashboard Overview</h2>
       </div>
 
       <div style={{
@@ -67,27 +67,27 @@ const Dashboard = () => {
         gap: '2rem',
         justifyContent: 'center'
       }}>
-        <div className="glass-panel text-center">
-          <h3 style={{ color: 'var(--text-secondary)' }}>Total Tithe Received</h3>
-          <p className="text-gradient" style={{ fontSize: '3rem', fontWeight: 'bold', margin: '1rem 0' }}>
-            Rs. {stats.totalDonations.toLocaleString()}
+        <div className="glass-panel text-center" style={{ padding: '1.5rem' }}>
+          <h3 style={{ color: 'var(--text-secondary)', fontSize: '1rem', marginBottom: '0.7rem' }}>Total Tithe Received</h3>
+          <p className="text-gradient" style={{ fontSize: '2.5rem', fontWeight: 'bold', margin: '0.8rem 0' }}>
+            Rs. {stats.totalDonations.toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </p>
         </div>
 
-        <div className="glass-panel text-center">
-          <h3 style={{ color: 'var(--text-secondary)' }}>This Month ({nepaliMonths[new Date().getMonth()]})</h3>
-          <p className="text-gradient" style={{ fontSize: '3rem', fontWeight: 'bold', margin: '1rem 0' }}>
-            Rs. {stats.thisMonth.toLocaleString()}
+        <div className="glass-panel text-center" style={{ padding: '1.5rem' }}>
+          <h3 style={{ color: 'var(--text-secondary)', fontSize: '1rem', marginBottom: '0.7rem' }}>This Month ({nepaliMonths[new Date().getMonth()]})</h3>
+          <p className="text-gradient" style={{ fontSize: '2.5rem', fontWeight: 'bold', margin: '0.8rem 0' }}>
+            Rs. {stats.thisMonth.toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </p>
         </div>
       </div>
 
-      <div className="glass-panel" style={{ marginTop: '2rem' }}>
-        <h3 style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', textAlign: 'center' }}>
+      <div className="glass-panel" style={{ marginTop: '2rem', padding: '2rem' }}>
+        <h3 style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', textAlign: 'center', fontSize: '1.1rem' }}>
           Monthly Tithe Bar Chart ({currentYear})
         </h3>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem', textAlign: 'center' }}>
-          This bar graph shows the total amount collected per month for the current year. Look for the longest bar to see which month earned the highest.
+          Monthly collections for the current year.
         </p>
         <div style={{ height: '500px', width: '100%' }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -100,7 +100,7 @@ const Dashboard = () => {
                 dataKey="name"
                 type="category"
                 stroke="var(--text-secondary)"
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 11 }}
                 interval={0}
                 angle={-45}
                 textAnchor="end"
@@ -127,7 +127,7 @@ const Dashboard = () => {
                   color: '#fff'
                 }}
                 itemStyle={{ color: 'var(--success-color)' }}
-                formatter={(value) => [`Rs. ${value.toLocaleString()}`, 'Amount']}
+                formatter={(value) => [`Rs. ${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, 'Amount']}
               />
               <Bar
                 dataKey="amount"

@@ -7,9 +7,13 @@ const Explore = () => {
   const [contentStatus, setContentStatus] = useState({ type: '', message: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [homeInfo, setHomeInfo] = useState('');
+  const [headerVerseNep, setHeaderVerseNep] = useState('');
+  const [headerVerseEng, setHeaderVerseEng] = useState('');
 
   useEffect(() => {
     fetchContent('home_info', setHomeInfo);
+    fetchContent('header_verse_nepali', setHeaderVerseNep);
+    fetchContent('header_verse_english', setHeaderVerseEng);
   }, []);
 
   const fetchContent = async (key, setter) => {
@@ -23,19 +27,24 @@ const Explore = () => {
     }
   };
 
-  const handleContentSave = async (key, value) => {
+  const handleSaveSection = async (key, value) => {
     setIsLoading(true);
     setContentStatus({ type: '', message: '' });
     try {
-      const res = await axios.put(`http://localhost:5000/api/content/${key}`, { value });
-      if (res.data.success) {
-        setContentStatus({ type: 'success', message: 'Content updated successfully!' });
+      if (key === 'header_verse') {
+        await Promise.all([
+          axios.put(`http://localhost:5000/api/content/header_verse_nepali`, { value: headerVerseNep }),
+          axios.put(`http://localhost:5000/api/content/header_verse_english`, { value: headerVerseEng })
+        ]);
+      } else {
+        await axios.put(`http://localhost:5000/api/content/${key}`, { value });
       }
+      setContentStatus({ type: 'success', message: 'Message saved successfully!' });
     } catch (err) {
-      setContentStatus({ type: 'error', message: 'Failed to update content.' });
+      setContentStatus({ type: 'error', message: 'Failed to save changes.' });
     } finally {
       setIsLoading(false);
-      setTimeout(() => setContentStatus({ type: '', message: '' }), 3000);
+      setTimeout(() => setContentStatus({ type: '', message: '' }), 4000);
     }
   };
 
@@ -43,7 +52,7 @@ const Explore = () => {
     <div style={{ padding: '2rem' }}>
       <div className="page-header" style={{ marginBottom: '2rem' }}>
         <h2>Explore & CMS</h2>
-        <p style={{ color: 'var(--text-light)' }}>Manage the welcome message on your public website.</p>
+        <p style={{ color: 'var(--text-light)' }}>Manage the welcome message and header verses on your public website.</p>
       </div>
 
       {contentStatus.message && (
@@ -69,8 +78,46 @@ const Explore = () => {
           onChange={(e) => setHomeInfo(e.target.value)}
           placeholder="Enter a welcome message for visitors..."
         />
-        <button className="btn" onClick={() => handleContentSave('home_info', homeInfo)} disabled={isLoading}>
-          <Save size={18} /> {isLoading ? 'Saving...' : 'Save Message'}
+        <button className="btn btn-sm" onClick={() => handleSaveSection('home_info', homeInfo)} disabled={isLoading}>
+          <Save size={16} /> {isLoading ? 'Saving...' : 'Save Welcome Message'}
+        </button>
+      </div>
+
+      <div className="glass-panel" style={{ maxWidth: '800px', marginTop: '2rem' }}>
+        <h3>Navbar Header Verse</h3>
+        <p style={{ marginBottom: '1rem', fontSize: '0.9rem', color: 'gray' }}>This message appears on the top-right of your main landing page.</p>
+        
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Nepali Verse</label>
+          <input
+            type="text"
+            className="form-group"
+            style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-lighter)', color: 'white' }}
+            value={headerVerseNep}
+            onChange={(e) => setHeaderVerseNep(e.target.value)}
+            placeholder="Enter Nepali verse..."
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>English Verse</label>
+          <input
+            type="text"
+            className="form-group"
+            style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-lighter)', color: 'white' }}
+            value={headerVerseEng}
+            onChange={(e) => setHeaderVerseEng(e.target.value)}
+            placeholder="Enter English verse..."
+          />
+        </div>
+
+        <button 
+          className="btn btn-sm" 
+          onClick={() => handleSaveSection('header_verse')} 
+          disabled={isLoading}
+          style={{ backgroundColor: 'var(--success-color)' }}
+        >
+          <Save size={16} /> {isLoading ? 'Saving...' : 'Save Header Verses'}
         </button>
       </div>
     </div>

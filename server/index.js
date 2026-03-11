@@ -179,7 +179,7 @@ app.get('/api/donations', async (req, res) => {
         query += ' AND month = ?';
         params.push(month);
     }
-    
+
     query += ' ORDER BY created_at DESC';
 
     try {
@@ -208,13 +208,35 @@ app.delete('/api/donations/:id', async (req, res) => {
     }
 });
 
+app.post('/api/donations/bulk-delete', async (req, res) => {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ success: false, message: 'No IDs provided' });
+    }
+
+    try {
+        // Using IN clause for bulk deletion
+        const query = `DELETE FROM donations WHERE id IN (${ids.map(() => '?').join(',')})`;
+        const [result] = await db.execute(query, ids);
+
+        res.json({
+            success: true,
+            message: `${result.affectedRows} records deleted successfully`,
+            deletedCount: result.affectedRows
+        });
+    } catch (err) {
+        console.error('Bulk delete error:', err);
+        res.status(500).json({ success: false, message: 'Failed to perform bulk delete' });
+    }
+});
+
 // 3. Template Photo
 app.post('/api/template', upload.single('templateImage'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
     const templatePath = `/uploads/${req.file.filename}`;
-    
+
     try {
         // Upsert into settings table
         await db.execute(
@@ -362,7 +384,7 @@ app.post('/api/gallery', uploadGallery.array('galleryImage', 10), async (req, re
     if (!req.files || req.files.length === 0) {
         return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
-    
+
     let { title, description } = req.body;
     title = title || '';
     description = description || '';
@@ -374,7 +396,7 @@ app.post('/api/gallery', uploadGallery.array('galleryImage', 10), async (req, re
         const imagePath = `/uploads/${file.filename}`;
         try {
             const [result] = await db.execute(
-                'INSERT INTO gallery_photos (image_url, title, description) VALUES (?, ?, ?)', 
+                'INSERT INTO gallery_photos (image_url, title, description) VALUES (?, ?, ?)',
                 [imagePath, title, description]
             );
             savedPhotos.push({
@@ -393,9 +415,9 @@ app.post('/api/gallery', uploadGallery.array('galleryImage', 10), async (req, re
         return res.status(500).json({ success: false, message: 'Database error storing photo paths', errors });
     }
 
-    res.json({ 
-        success: true, 
-        message: 'Photos uploaded successfully', 
+    res.json({
+        success: true,
+        message: 'Photos uploaded successfully',
         photos: savedPhotos,
         errors: errors.length > 0 ? errors : undefined
     });
@@ -441,14 +463,14 @@ app.post('/api/testimonies', uploadTestimony.single('testimonyImage'), async (re
     }
 
     const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
-    
+
     try {
         const [result] = await db.execute(
             'INSERT INTO testimonies (name, text, image_url) VALUES (?, ?, ?)',
             [name, text, imagePath]
         );
-        res.status(201).json({ 
-            success: true, 
+        res.status(201).json({
+            success: true,
             message: 'Testimony created successfully',
             testimony: { id: result.insertId, name, text, image_url: imagePath }
         });

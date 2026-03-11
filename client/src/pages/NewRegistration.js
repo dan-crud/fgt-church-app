@@ -47,8 +47,8 @@ const NewRegistration = () => {
     name: '',
     name_en: '',
     amount: '',
-    year: currentYear.toString(),
-    month: months[new Date().getMonth()]
+    year: '',
+    month: ''
   });
 
   const [status, setStatus] = useState({ type: '', message: '' });
@@ -127,6 +127,7 @@ const NewRegistration = () => {
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label>वर्ष (Year)</label>
               <select name="year" value={formData.year} onChange={handleChange} required>
+                <option value="" disabled>Select Year</option>
                 {years.map(y => (
                   <option key={y} value={y}>{nepalify.format(y)}</option>
                 ))}
@@ -136,6 +137,7 @@ const NewRegistration = () => {
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label>महिना (Month)</label>
               <select name="month" value={formData.month} onChange={handleChange} required>
+                <option value="" disabled>Select Month</option>
                 {months.map(m => (
                   <option key={m} value={m}>{m}</option>
                 ))}

@@ -9,6 +9,9 @@ const GenerateCard = () => {
   const [templateUrl, setTemplateUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [error, setError] = useState(null);
 
   const currentYear = new Date().getFullYear();
   const [filterYear, setFilterYear] = useState(currentYear.toString());
@@ -27,8 +30,9 @@ const GenerateCard = () => {
     },
     recipient: {
       x: 1600, y: 250,
-      fontSize: 55, color: '#000000',
-      maxWidth: 400, lineHeight: 40,
+      fontSize: 55, color: '#000000', // Member name color
+      secondaryColor: '#ff0000', // "TO," color
+      maxWidth: 400, lineHeight: 70,
       isBold: true, isItalic: false, isUnderline: false,
       drawCircle: true,
       circleColor: '#00d5ff',
@@ -51,45 +55,48 @@ const GenerateCard = () => {
   const years = Array.from({ length: 11 }, (_, i) => (currentYear - 5 + i).toString());
 
   useEffect(() => {
-    const fetchTemplate = async () => {
-      try {
-        const res = await axios.get('http://localhost:5000/api/template');
-        if (res.data.success && res.data.path) {
-          setTemplateUrl(`http://localhost:5000${res.data.path}?t=${new Date().getTime()}`);
-        }
-      } catch (err) { }
-    };
-    fetchTemplate();
-
-    const fetchSettings = async () => {
-      try {
-        const res = await axios.get('http://localhost:5000/api/settings/card-coords');
-        if (res.data.success && res.data.data) {
-          setCoords(prev => ({
-            ...prev,
-            ...res.data.data,
-            body: { ...prev.body, ...res.data.data.body },
-            recipient: { ...prev.recipient, ...res.data.data.recipient }
-          }));
-        }
-      } catch (err) {
-      } finally {
-        isLoadedRef.current = true; // Mark as loaded even if error (to allow future saves)
+    // No auto-fetch on mount
+  }, []);
+  
+  const fetchTemplate = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/template');
+      if (res.data.success && res.data.path) {
+        setTemplateUrl(`http://localhost:5000${res.data.path}?t=${new Date().getTime()}`);
       }
-    };
+    } catch (err) { }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/settings/card-coords');
+      if (res.data.success && res.data.data) {
+        setCoords(prev => ({
+          ...prev,
+          ...res.data.data,
+          body: { ...prev.body, ...res.data.data.body },
+          recipient: { ...prev.recipient, ...res.data.data.recipient }
+        }));
+      }
+    } catch (err) {
+    } finally {
+      isLoadedRef.current = true; // Mark as loaded even if error (to allow future saves)
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/users');
+      if (res.data.success) {
+        setChurchUsers(res.data.data);
+      }
+    } catch (err) { }
+  };
+
+  useEffect(() => {
+    fetchTemplate();
     fetchSettings();
-
-    const fetchUsers = async () => {
-      try {
-        const res = await axios.get('http://localhost:5000/api/users');
-        if (res.data.success) {
-          setChurchUsers(res.data.data);
-        }
-      } catch (err) { }
-    };
     fetchUsers();
-
-    fetchData(); // Initial load
   }, []);
 
   const saveConfig = async (currentCoords) => {
@@ -135,15 +142,19 @@ const GenerateCard = () => {
       return;
     }
     setLoading(true);
+    setError(null);
     try {
       let url = `http://localhost:5000/api/donations?year=${filterYear}&month=${filterMonth}`;
       
       const res = await axios.get(url);
       if (res.data.success) {
         setData(res.data.data);
+        setHasSearched(true);
+        setSelectedIds([]); // Reset selection on new fetch
       }
     } catch (err) {
       console.error(err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -160,6 +171,38 @@ const GenerateCard = () => {
         console.error(err);
         alert('Failed to delete record');
       }
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} selected records?`)) {
+      try {
+        const res = await axios.post('http://localhost:5000/api/donations/bulk-delete', { ids: selectedIds });
+        if (res.data.success) {
+          fetchData();
+          setSelectedIds([]);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Failed to delete selected records');
+      }
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === data.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(data.map(item => item.id));
+    }
+  };
+
+  const toggleSelect = (id) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter(sid => sid !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
     }
   };
 
@@ -240,23 +283,24 @@ const GenerateCard = () => {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const baseFontSize = rc.fontSize || 55;
-    const spacing = baseFontSize * 1.3;
+    const lh = rc.lineHeight || 70; // Use dynamic line height
 
-    // A. Draw "TO," in RED
+    // A. Draw "TO," in its secondary color (Red)
     ctx.font = `bold ${baseFontSize}px Arial, sans-serif`;
-    ctx.fillStyle = '#ff0000'; // RED
-    ctx.fillText("TO,", rX, rY - (spacing / 2));
+    ctx.fillStyle = rc.secondaryColor || '#ff0000'; 
+    ctx.fillText("TO,", rX, rY - (lh / 2)); // Dynamic offset up
 
-    // B. Draw Member Name in BLACK
+    // B. Draw Member Name in its primary color (Black)
     ctx.font = `bold ${baseFontSize - 5}px Arial, sans-serif`;
-    ctx.fillStyle = '#000000'; // BLACK
-    ctx.fillText(nameEn, rX, rY + (spacing / 2));
+    ctx.fillStyle = rc.color || '#000000'; 
+    ctx.fillText(nameEn, rX, rY + (lh / 2)); // Dynamic offset down
     
     ctx.restore();
     ctx.textBaseline = 'alphabetic'; // Reset baseline for other drawings
 
     // 2. Draw Main Message with Nepali Name (Body)
-    const amountFormat = parseInt(donor.amount, 10).toLocaleString();
+    const amountVal = Math.floor(Number(donor.amount));
+    const amountFormat = amountVal.toLocaleString();
     const nepaliYear = nepalify.format(donor.year.toString());
     const nepaliAmount = nepalify.format(amountFormat);
 
@@ -289,12 +333,16 @@ const GenerateCard = () => {
 
   const handleBatchDownload = async () => {
     if (!templateUrl) return alert("Please upload a template in the Photo page first.");
-    if (data.length === 0) return alert("No records loaded.");
+    const downloadList = selectedIds.length > 0 
+      ? data.filter(item => selectedIds.includes(item.id)) 
+      : data;
+
+    if (downloadList.length === 0) return alert("No records selected or loaded.");
     if (!imgRef.current) return;
 
-    for (let i = 0; i < data.length; i++) {
-      const donor = data[i];
-      setGenerating(`Generating for... ${donor.name} (${i + 1}/${data.length})`);
+    for (let i = 0; i < downloadList.length; i++) {
+      const donor = downloadList[i];
+      setGenerating(`Generating for... ${donor.name} (${i + 1}/${downloadList.length})`);
 
       const dataUrl = await generateSingleCard(donor);
 
@@ -307,6 +355,7 @@ const GenerateCard = () => {
       await new Promise(r => setTimeout(r, 600));
     }
     setGenerating('Done!');
+    setSelectedIds([]); // Clear selection after download
     setTimeout(() => setGenerating(''), 3000);
   };
 
@@ -332,23 +381,32 @@ const GenerateCard = () => {
           </select>
         </div>
 
-        <button className="btn" onClick={fetchData}>
-          <Search size={18} /> Load
+        <button className="btn btn-sm" onClick={fetchData}>
+          <Search size={16} /> Filter
         </button>
 
-        <button className="btn" style={{ background: 'rgba(255,255,255,0.1)' }} onClick={() => setShowConfig(!showConfig)}>
-          <Settings size={18} /> Adjust
-        </button>
-
-        <button
-          className="btn"
-          style={{ backgroundColor: 'var(--success-color)', marginLeft: 'auto' }}
-          onClick={handleBatchDownload}
-          disabled={data.length === 0 || !templateUrl || generating !== ''}
-        >
-          <Download size={18} /> {generating !== '' ? generating : `Generate All Cards (${data.length})`}
+        <button className="btn btn-sm" style={{ marginLeft: 'auto', backgroundColor: '#6b46c1' }} onClick={() => setShowConfig(true)}>
+          <Settings size={16} /> Adjust Settings
         </button>
       </div>
+        <button
+          className="btn"
+          style={{ 
+            backgroundColor: selectedIds.length > 0 ? 'var(--success-color)' : 'rgba(72, 187, 120, 0.4)', 
+            marginLeft: 'auto',
+            color: selectedIds.length > 0 ? '#fff' : 'rgba(255,255,255,0.6)',
+            boxShadow: selectedIds.length > 0 ? '0 4px 12px rgba(0,0,0,0.2)' : 'none',
+            cursor: (selectedIds.length > 0 && generating === '') ? 'pointer' : 'default'
+          }}
+          onClick={handleBatchDownload}
+          disabled={selectedIds.length === 0 || !templateUrl || generating !== ''}
+        >
+          <Download size={18} /> {generating !== '' ? generating : 
+            selectedIds.length > 0 
+              ? `Download Selected Card${selectedIds.length > 1 ? 's' : ''} (${selectedIds.length})` 
+              : `Download Selected Card`
+          }
+        </button>
 
       {templateUrl && (
         <img
@@ -407,7 +465,8 @@ const GenerateCard = () => {
                 {autoSaveStatus === 'saving' ? 'Saving...' : 'Save Mapping'}
               </button>
             </div>
-            <button className="btn btn-danger" style={{ padding: '0.4rem 0.8rem' }} onClick={() => setShowConfig(false)}><X size={16} /></button>
+            <button className="btn btn-danger btn-sm" onClick={() => setShowConfig(false)}><X size={16} /></button>
+
           </div>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', fontSize: '0.9rem' }}>
             Adjust X, Y coordinates, Font Size, and Color. X=0, Y=0 is the top-left corner of the template.
@@ -433,6 +492,10 @@ const GenerateCard = () => {
                         <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
                           <label>Circle Color</label>
                           <input type="color" value={coords[field].circleColor || '#00CED1'} onChange={e => setCoords({ ...coords, [field]: { ...coords[field], circleColor: e.target.value } })} style={{ height: '40px', padding: 0 }} />
+                        </div>
+                        <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
+                          <label>TO, Color</label>
+                          <input type="color" value={coords[field].secondaryColor || '#ff0000'} onChange={e => setCoords({ ...coords, [field]: { ...coords[field], secondaryColor: e.target.value } })} style={{ height: '40px', padding: 0 }} />
                         </div>
                         <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
                           <label>Circle Radius</label>
@@ -503,9 +566,9 @@ const GenerateCard = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h3>Card Preview: {previewDonor.name}</h3>
             <div>
-              <button className="btn" style={{ marginRight: '1rem' }} onClick={() => setPreviewDonor(null)}>Back to List</button>
-              <button className="btn" style={{ backgroundColor: 'var(--success-color)' }} onClick={downloadSingleCard}>
-                <Download size={18} /> Download Card
+              <button className="btn btn-sm" style={{ marginRight: '1rem' }} onClick={() => setPreviewDonor(null)}>Back to List</button>
+              <button className="btn btn-sm" style={{ backgroundColor: 'var(--success-color)' }} onClick={downloadSingleCard}>
+                <Download size={14} /> Download Card
               </button>
             </div>
           </div>
@@ -520,48 +583,80 @@ const GenerateCard = () => {
       ) : (
         <div className="glass-panel table-container">
           {loading ? (
-            <p>Loading records...</p>
-          ) : data.length === 0 ? (
-            <p style={{ color: 'var(--text-secondary)' }}>No records loaded. Try adjusting the filters and clicking Load.</p>
-          ) : (
+          <p>Loading records...</p>
+        ) : !hasSearched ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+            <Search size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
+            <p>Please select filters and click <strong>Filter</strong> to view records.</p>
+          </div>
+        ) : data.length === 0 ? (
+          <p style={{ color: 'var(--text-secondary)' }}>No tithes found for the selected period.</p>
+        ) : (
             <table>
               <thead>
                 <tr>
+                  <th style={{ width: '40px', textAlign: 'center' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={data.length > 0 && selectedIds.length === data.length} 
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
                   <th>S.No</th>
                   <th>Member Name</th>
                   <th>Amount (Rs)</th>
                   <th>Year</th>
                   <th>Month</th>
                   <th>Date Logged</th>
-                  <th style={{ textAlign: 'center' }}>Actions</th>
+                  <th style={{ textAlign: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                      {selectedIds.length > 0 && (
+                        <button 
+                          className="btn btn-danger btn-sm" 
+                          style={{ padding: '2px 4px', width: '100%', marginBottom: '4px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }} 
+                          onClick={handleBulkDelete}
+                          title="Delete Selected"
+                        >
+                          <Trash2 size={10} /> Delete Item
+                        </button>
+                      )}
+                      <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Action</span>
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {data.map((item, index) => (
-                  <tr key={item.id}>
+                  <tr key={item.id} style={{ backgroundColor: selectedIds.includes(item.id) ? 'rgba(var(--accent-rgb), 0.05)' : 'transparent' }}>
+                    <td style={{ textAlign: 'center' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedIds.includes(item.id)} 
+                        onChange={() => toggleSelect(item.id)}
+                      />
+                    </td>
                     <td>{index + 1}</td>
-                    <td style={{ fontWeight: 500 }}>{item.name}</td>
-                    <td style={{ color: 'var(--success-color)' }}>{nepalify.format(parseInt(item.amount, 10).toLocaleString())}</td>
+                    <td style={{ fontWeight: 500 }}>
+                      <div>{item.name}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{item.name_en || ''}</div>
+                    </td>
+                    <td style={{ color: 'var(--success-color)' }}>{nepalify.format(Math.floor(Number(item.amount)).toLocaleString())}</td>
                     <td>{nepalify.format(item.year.toString())}</td>
                     <td>{item.month}</td>
                     <td>{new Date(item.created_at).toLocaleDateString()}</td>
                     <td style={{ textAlign: 'center' }}>
-                      <button
-                        className="btn"
-                        style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', marginRight: '0.5rem' }}
-                        onClick={() => showPreview(item)}
-                        title="Generate Card"
-                      >
-                        <ImageIcon size={14} />
-                      </button>
-                      <button
-                        className="btn btn-danger"
-                        style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
-                        onClick={() => handleDelete(item.id)}
-                        title="Delete Record"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button className="btn btn-sm" onClick={() => showPreview(item)} title="Preview Card">
+                          <ImageIcon size={14} />
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleDelete(item.id)}
+                          title="Delete Record"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

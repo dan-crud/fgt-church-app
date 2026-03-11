@@ -7,6 +7,8 @@ import logo from '../logo.jpg';
 
 const Home = () => {
   const [welcomeMsg, setWelcomeMsg] = useState('');
+  const [headerVerseNep, setHeaderVerseNep] = useState('');
+  const [headerVerseEng, setHeaderVerseEng] = useState('');
   const [loading, setLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
 
@@ -28,9 +30,23 @@ const Home = () => {
   }, [isAuthenticated, navigate]);
 
   useEffect(() => {
+    // Fetch generic home info
     axios.get('http://localhost:5000/api/content/home_info')
       .then(res => {
         if (res.data.success) setWelcomeMsg(res.data.data);
+      })
+      .catch(err => console.error(err));
+
+    // Fetch dynamic header verses
+    axios.get('http://localhost:5000/api/content/header_verse_nepali')
+      .then(res => {
+        if (res.data.success) setHeaderVerseNep(res.data.data);
+      })
+      .catch(err => console.error(err));
+
+    axios.get('http://localhost:5000/api/content/header_verse_english')
+      .then(res => {
+        if (res.data.success) setHeaderVerseEng(res.data.data);
       })
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
@@ -70,8 +86,19 @@ const Home = () => {
       {/* Navbar */}
       <nav className="fgt-navbar">
         <div className="fgt-brand" style={{ cursor: 'default' }}>
-          <img src={logo} alt="FGT Logo" className="fgt-logo" />
-          <span className="fgt-name">FGT Church</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <img src={logo} alt="FGT Logo" className="fgt-logo" />
+            <span className="fgt-name">Nepalgunj FGT Church</span>
+          </div>
+        </div>
+
+        <div className="fgt-nav-verse">
+          <div className="verse-nepali">
+            {headerVerseNep || "“हे सबै थाकेका र बोझले दबिएका हो, म कहाँ आओ; म तिमीहरूलाई विश्राम दिनेछु।”--मत्ती ११ः२८"}
+          </div>
+          <div className="verse-english">
+            {headerVerseEng || "“Come to me, all you who are weary and burdened, and I will give you rest.” -- Matthew 11:28"}
+          </div>
         </div>
       </nav>
 
@@ -92,7 +119,7 @@ const Home = () => {
 
           <div className="fgt-hero-right">
             <div className="direct-login-card">
-              <h2 className="login-title">Admin Login</h2>
+              <h2 className="login-title">Login</h2>
 
               {loginError && (
                 <div className="login-error-msg">{loginError}</div>

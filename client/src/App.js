@@ -60,7 +60,7 @@ const DashboardLayout = ({ children }) => {
 
       <aside className={`sidebar ${!isSidebarOpen ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
-          <h2 className="text-gradient" style={{ fontSize: '1.2rem' }}>FGT Church</h2>
+          <h2 className="text-gradient" style={{ fontSize: '1.2rem' }}>Nepalgunj FGT Church</h2>
           <div style={{ marginTop: '0.25rem' }}>
             <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>
               {username && `@${username}`}
@@ -102,7 +102,7 @@ const DashboardLayout = ({ children }) => {
           fontSize: '0.85rem',
           borderTop: '1px solid rgba(255,255,255,0.05)'
         }}>
-          @2026 FGT Church . All rights reserved.
+          @2026 Nepalgunj FGT Church . All rights reserved.
         </footer>
       </main>
     </div>

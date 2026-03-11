@@ -149,6 +149,31 @@ section {
   letter-spacing: -0.5px;
 }
 
+.fgt-nav-verse {
+  text-align: right;
+  max-width: 600px;
+  line-height: 1.2;
+}
+
+.verse-nepali {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.verse-english {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .fgt-nav-verse {
+    display: none;
+  }
+}
+
 /* Navigation Links */
 .fgt-nav-link {
   color: var(--fgt-text);
@@ -386,10 +411,10 @@ section {
   width: 100%;
   padding: 1rem;
   border-radius: 10px;
-  background: var(--fgt-gold);
-  color: #000;
+  background: #ffffff;
+  color: #000000;
   border: none;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -399,9 +424,9 @@ section {
 }
 
 .login-submit-btn:hover:not(:disabled) {
-  background: #e5bf47;
+  background: #f8f8f8;
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
 }
 
 .login-submit-btn:disabled {
