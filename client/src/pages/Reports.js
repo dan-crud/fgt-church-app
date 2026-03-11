@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Download, Search, Trash2, FileText } from 'lucide-react';
 import nepalify from 'nepalify';
-import { AuthContext } from '../context/AuthContext';
 
 const Reports = () => {
   const [data, setData] = useState([]);
@@ -114,7 +113,6 @@ const Reports = () => {
   // PDF — Current filtered view (serial wise)
   const exportPDFCurrent = () => {
     const doc = new jsPDF();
-    const title = `FGT Church — Tithe Report (${filterMonth === 'All' ? 'All Months' : filterMonth}, ${filterYear})`;
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('FGT Church', 14, 15);

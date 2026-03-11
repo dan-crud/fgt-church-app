@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+const nepaliMonths = [
+  "जनवरी", "फेब्रुअरी", "मार्च", "अप्रिल", "मे", "जुन",
+  "जुलाई", "अगस्ट", "सेप्टेम्बर", "अक्टोबर", "नोभेम्बर", "डिसेम्बर"
+];
+
 const Dashboard = () => {
   const [stats, setStats] = useState({ totalDonations: 0, thisMonth: 0 });
   const [chartData, setChartData] = useState([]);
-
-  const nepaliMonths = [
-    "जनवरी", "फेब्रुअरी", "मार्च", "अप्रिल", "मे", "जुन",
-    "जुलाई", "अगस्ट", "सेप्टेम्बर", "अक्टोबर", "नोभेम्बर", "डिसेम्बर"
-  ];
 
   const currentYear = new Date().getFullYear().toString();
 

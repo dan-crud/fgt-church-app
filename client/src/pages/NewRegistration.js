@@ -2,30 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Save } from 'lucide-react';
 import nepalify from 'nepalify';
-import { useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
 
 const NewRegistration = () => {
-  const currentYear = new Date().getFullYear();
-  const [churchUsers, setChurchUsers] = useState([]);
-  const { role, username, fullName } = useContext(AuthContext);
-  const currentUser = { role, username, fullName };
-
   useEffect(() => {
-    // Fetch all church users for dropdown
-
-    // Fetch all church users for dropdown
-    const fetchUsers = async () => {
-      try {
-        const res = await axios.get('http://localhost:5000/api/users');
-        if (res.data.success) {
-          setChurchUsers(res.data.data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch users", err);
-      }
-    };
-    fetchUsers();
+    // No-op
   }, []);
 
   // Helper to convert Nepali digits to English digits
@@ -53,7 +33,7 @@ const NewRegistration = () => {
 
   const [status, setStatus] = useState({ type: '', message: '' });
   const [loading, setLoading] = useState(false);
-  const [isNepaliMode, setIsNepaliMode] = useState(true);
+  const isNepaliMode = true;
 
   const handleNameChange = (e) => {
     const rawVal = e.target.value;

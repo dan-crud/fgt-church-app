@@ -10,7 +10,6 @@ const Home = () => {
   const [headerVerseNep, setHeaderVerseNep] = useState('');
   const [headerVerseEng, setHeaderVerseEng] = useState('');
   const [loading, setLoading] = useState(true);
-  const [showLogin, setShowLogin] = useState(false);
 
   // Login form states
   const [username, setUsername] = useState('');
@@ -73,13 +72,6 @@ const Home = () => {
     }
   };
 
-  const closeLoginModal = () => {
-    setShowLogin(false);
-    setLoginError('');
-    setUsername('');
-    setPassword('');
-    setShowPassword(false);
-  };
 
   return (
     <div className="fgt-landing-wrapper">

@@ -1,0 +1,9 @@
+﻿G:\React_App\fgt-church-app\client\src\pages\GenerateCard.js: line 1, col 46, Warning - 'useContext' is defined but never used. (no-unused-vars)
+G:\React_App\fgt-church-app\client\src\pages\GenerateCard.js: line 5, col 10, Warning - 'AuthContext' is defined but never used. (no-unused-vars)
+G:\React_App\fgt-church-app\client\src\pages\GenerateCard.js: line 83, col 9, Warning - 'fetchUsers' is assigned a value but never used. (no-unused-vars)
+G:\React_App\fgt-church-app\client\src\pages\GenerateCard.js: line 87, col 9, Error - 'setChurchUsers' is not defined. (no-undef)
+G:\React_App\fgt-church-app\client\src\pages\NewRegistration.js: line 5, col 10, Warning - 'useContext' is defined but never used. (no-unused-vars)
+G:\React_App\fgt-church-app\client\src\pages\NewRegistration.js: line 6, col 10, Warning - 'AuthContext' is defined but never used. (no-unused-vars)
+G:\React_App\fgt-church-app\client\src\pages\NewRegistration.js: line 9, col 9, Warning - 'currentYear' is assigned a value but never used. (no-unused-vars)
+
+7 problems

@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Search, Download, Settings, Image as ImageIcon, X, Trash2 } from 'lucide-react';
 import nepalify from 'nepalify';
-import { AuthContext } from '../context/AuthContext';
 
 const GenerateCard = () => {
   const [data, setData] = useState([]);
@@ -11,14 +10,10 @@ const GenerateCard = () => {
   const [generating, setGenerating] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
-  const [error, setError] = useState(null);
 
   const currentYear = new Date().getFullYear();
   const [filterYear, setFilterYear] = useState(currentYear.toString());
   const [filterMonth, setFilterMonth] = useState('All');
-  const [churchUsers, setChurchUsers] = useState([]);
-  const { role, username, fullName } = useContext(AuthContext);
-  const currentUser = { role, username, fullName };
 
   // Custom coordinates state
   const [coords, setCoords] = useState({
@@ -84,19 +79,10 @@ const GenerateCard = () => {
     }
   };
 
-  const fetchUsers = async () => {
-    try {
-      const res = await axios.get('http://localhost:5000/api/users');
-      if (res.data.success) {
-        setChurchUsers(res.data.data);
-      }
-    } catch (err) { }
-  };
 
   useEffect(() => {
     fetchTemplate();
     fetchSettings();
-    fetchUsers();
   }, []);
 
   const saveConfig = async (currentCoords) => {
@@ -142,7 +128,6 @@ const GenerateCard = () => {
       return;
     }
     setLoading(true);
-    setError(null);
     try {
       let url = `http://localhost:5000/api/donations?year=${filterYear}&month=${filterMonth}`;
       
@@ -154,7 +139,6 @@ const GenerateCard = () => {
       }
     } catch (err) {
       console.error(err);
-      setError(err.message);
     } finally {
       setLoading(false);
     }
